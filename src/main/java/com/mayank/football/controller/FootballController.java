@@ -18,10 +18,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import com.mayank.football.service.RestRequestClient;
 
 
 
@@ -33,60 +36,78 @@ public class FootballController {
 	
 	@Autowired
 	private Environment environment;
+	
+	@Autowired
+	RestRequestClient requesthandler;
 
 	public String getFootballApiKey() {
 		return environment.getProperty("football.api.key");
 	}
 	
-	 @GetMapping("/getStandings")
-	 public ResponseEntity<JSONArray>getStanding(@RequestParam(value = "leagueid") String leagueid)
-	 {
-		JSONArray resp=new JSONArray();
+	public String StandingUrl() {
+		return environment.getProperty("standings.endpoint.url");
+	}
 	
-		 RestTemplate restTemplate = new RestTemplate();
-		 if(leagueid!=null && !leagueid.isEmpty())
-		 {
-			 
-			 String transactionUrl = "https://apiv2.apifootball.com";
+	public String CountryUrl() {
+		return environment.getProperty("country.endpoint.url");
+	}
+	
+	public String LeagueUrl() {
+		return environment.getProperty("league.endpoint.url");
+	}
 
-			 UriComponentsBuilder builder = UriComponentsBuilder
-			     .fromUriString(transactionUrl)
-			     // Add query parameter
-			     .queryParam("action", "get_standings")
-			     .queryParam("league_id",leagueid)
-			     .queryParam("APIkey",getFootballApiKey());
-
-			
-			 String result = restTemplate.getForObject(builder.toUriString(), String.class);
-			System.out.println(result);
-		   
+	
+	
+	 
+	 
+	 @RequestMapping(value="/getStanding", method=RequestMethod.GET)
 		
-		 JSONParser parser = new JSONParser();
-		 JSONArray obj = null;
-		try {
-			obj = (JSONArray)parser.parse(result);
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		public ResponseEntity<JSONArray> getStandings(@RequestParam(value = "league", defaultValue = "148") String league) throws IOException{
+			
+			String result = requesthandler.getResponse(StandingUrl()+league+getFootballApiKey());
+			 JSONParser parser = new JSONParser();
+			 JSONArray obj = null;
+			try {
+				obj = (JSONArray)parser.parse(result);
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return ResponseEntity.ok(obj);
 		}
-		 for(int i=0;i<obj.size();i++)
-		 {
-			 JSONObject new_data=new JSONObject();
-			 JSONObject data=(JSONObject) obj.get(i);			
-			 new_data.put("country_name",data.get("country_name"));
-			 new_data.put("league_id",data.get("league_id"));
-			 new_data.put("league_name",data.get("league_name"));
-			 new_data.put("team_id",data.get("team_id"));
-			 new_data.put("team_name",data.get("team_name"));
-			 new_data.put("overall_league_position",data.get("overall_league_position"));
-	resp.add(new_data);
-		 } 
-		 
-		 }
-		 
-		 return ResponseEntity.ok(resp);
-		 
-	 }
+	 
+	 @RequestMapping(value="/getbyCountries", method=RequestMethod.GET)
+		
+		public ResponseEntity<JSONArray> getCountries() throws IOException{
+			
+			
+			String result = requesthandler.getResponse(CountryUrl()+getFootballApiKey());
+			 JSONParser parser = new JSONParser();
+			 JSONArray obj = null;
+			try {
+				obj = (JSONArray)parser.parse(result);
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return ResponseEntity.ok(obj);
+		}
+	 
+	 @RequestMapping(value="/getbyLeagues", method=RequestMethod.GET)
+		
+		public ResponseEntity<JSONArray> getLeagues(@RequestParam(value = "country", defaultValue = "41") String country) throws IOException{
+			
+			String result = requesthandler.getResponse(LeagueUrl()+country+getFootballApiKey());
+			 JSONParser parser = new JSONParser();
+			 JSONArray obj = null;
+			try {
+				obj = (JSONArray)parser.parse(result);
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return ResponseEntity.ok(obj);
+		}
 	
 
 }
